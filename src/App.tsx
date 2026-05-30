@@ -152,10 +152,7 @@ function App() {
         {/* Left spacer for centering */}
         <div className="w-20" />
         
-        {/* App title - centered */}
-        <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          LocalSearch Pro
-        </div>
+        <div className="w-20" />
         
         {/* Window control buttons - WebkitAppRegion no-drag prevents drag when clicking buttons */}
         <div className="flex items-center gap-1 w-20 justify-end" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>

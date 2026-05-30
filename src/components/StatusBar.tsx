@@ -36,7 +36,27 @@ export function StatusBar() {
           <span>最后更新：{lastUpdateStr}</span>
         </div>
       </div>
-      <span className="text-gray-300 dark:text-gray-600">LocalSearch Pro v0.1.0</span>
+      {/* Repo links */}
+      <div className="flex items-center gap-4">
+        <a
+          href="https://gitee.com/pure_full_of_smile/localsearch-pro"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          title="Gitee"
+        >
+          Gitee
+        </a>
+        <a
+          href="https://github.com/WhisperCove/localsearch-pro"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          title="GitHub"
+        >
+          GitHub
+        </a>
+      </div>
     </div>
   );
 }
