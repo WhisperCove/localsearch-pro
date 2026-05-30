@@ -97,7 +97,7 @@ function PdfPreview({ base64Content }: { base64Content: string }) {
 }
 
 // DOCX Preview Component
-function DocxPreview({ base64Content, ext }: { base64Content: string; ext: string }) {
+function DocxPreview({ base64Content, ext, path }: { base64Content: string; ext: string; path: string }) {
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,12 +134,26 @@ function DocxPreview({ base64Content, ext }: { base64Content: string; ext: strin
 
   if (ext === "doc") {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center text-gray-400">
-          <FileText className="w-16 h-16 mx-auto mb-4 opacity-20" />
-          <p className="text-base font-medium text-gray-500">旧版 Word 文档</p>
-          <p className="text-sm mt-2 text-gray-400">.doc 格式需要转换为 .docx 才能预览</p>
-          <p className="text-xs mt-1 text-gray-300">请使用 Word 或 LibreOffice 转换格式</p>
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+            <FileText className="w-10 h-10 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+            旧版 Word 文档
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            .doc 格式需要转换为 .docx 才能预览
+          </p>
+          <p className="text-xs text-gray-400 mb-4">
+            请使用 Word 或 LibreOffice 转换格式
+          </p>
+          <button
+            onClick={() => navigator.clipboard.writeText(path)}
+            className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            复制文件路径
+          </button>
         </div>
       </div>
     );
@@ -159,6 +173,8 @@ function DocxPreview({ base64Content, ext }: { base64Content: string; ext: strin
 
 // Image Preview Component
 function ImagePreview({ base64Content, ext }: { base64Content: string; ext: string }) {
+  const [error, setError] = useState(false);
+
   const mimeTypeMap: Record<string, string> = {
     png: "image/png",
     jpg: "image/jpeg",
@@ -175,6 +191,18 @@ function ImagePreview({ base64Content, ext }: { base64Content: string; ext: stri
   const mimeType = mimeTypeMap[ext] || "image/png";
   const dataUrl = `data:${mimeType};base64,${base64Content}`;
 
+  if (error || !base64Content) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center text-gray-400">
+          <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-20" />
+          <p className="text-sm">图片加载失败</p>
+          <p className="text-xs mt-1 text-gray-300">文件内容可能为空或格式不支持</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-center h-full p-4">
       <img
@@ -182,6 +210,7 @@ function ImagePreview({ base64Content, ext }: { base64Content: string; ext: stri
         alt="Preview"
         className="max-w-full max-h-full object-contain"
         style={{ maxHeight: "calc(100vh - 300px)" }}
+        onError={() => setError(true)}
       />
     </div>
   );
@@ -234,6 +263,8 @@ export function PreviewPanel({ preview, result, onOpenFolder, onCopyPath, onCopy
   const isPdf = PDF_EXTS.includes(result.ext);
   const isDocx = DOCX_EXTS.includes(result.ext);
   const isImage = IMAGE_EXTS.includes(result.ext);
+  // For .doc files, backend may return type="text" if it's actually plain text
+  const isDocAsText = result.ext === "doc" && preview?.type === "text";
   const canPreview = isText || isPdf || isDocx || isImage;
 
   const renderPreview = () => {
@@ -243,8 +274,13 @@ export function PreviewPanel({ preview, result, onOpenFolder, onCopyPath, onCopy
       return <PdfPreview base64Content={preview.content} />;
     }
 
+    // If backend detected .doc as plain text, render as text
+    if (isDocx && isDocAsText) {
+      return renderTextContent(preview.content);
+    }
+
     if (isDocx) {
-      return <DocxPreview base64Content={preview.content} ext={result.ext} />;
+      return <DocxPreview base64Content={preview.content} ext={result.ext} path={result.path} />;
     }
 
     if (isImage) {

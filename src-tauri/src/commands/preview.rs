@@ -57,7 +57,8 @@ pub async fn preview_file(
             "code"
         }
         "pdf" => "pdf",
-        "docx" | "doc" => "docx",
+        "docx" => "docx",
+        "doc" => "doc",  // special: try text fallback, else binary
         "png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "svg" | "ico" | "tiff" | "tif" => {
             "image"
         }
@@ -65,10 +66,40 @@ pub async fn preview_file(
         _ => "unsupported",
     };
 
+    let mut is_doc_text = false;
+
     let content = match preview_type {
         "text" | "code" => {
             // Read as text
             read_text_content(&path, &ext)
+        }
+        "doc" => {
+            // Try plain text fallback for .doc files (some are actually plain text)
+            match std::fs::read_to_string(&path) {
+                Ok(text) if !text.is_empty() && is_readable_text(&text) => {
+                    tracing::info!("[PREVIEW] .doc file read as plain text ({} chars)", text.len());
+                    let truncated = if text.len() > 5000 {
+                        let end = text.floor_char_boundary(5000);
+                        format!("{}\n\n... (showing first {} of {} chars)", &text[..end], end, text.len())
+                    } else {
+                        text
+                    };
+                    // Store that this was read as text
+                    is_doc_text = true;
+                    truncated
+                }
+                _ => {
+                    // Binary .doc file — send as base64 for frontend to show message
+                    tracing::info!("[PREVIEW] .doc file is binary, sending as base64");
+                    match std::fs::read(&path) {
+                        Ok(bytes) => base64::encode(&bytes),
+                        Err(e) => {
+                            tracing::error!("[PREVIEW] Failed to read .doc file: {}", e);
+                            String::new()
+                        }
+                    }
+                }
+            }
         }
         "pdf" | "docx" | "image" => {
             // Read as binary and convert to base64
@@ -83,15 +114,19 @@ pub async fn preview_file(
         _ => String::new(),
     };
 
+    // For .doc text fallback, override preview_type to "text" so frontend renders it properly
+    let final_type = if is_doc_text { "text" } else { preview_type };
+
     tracing::info!(
-        "[PREVIEW] Loaded: name='{}', type={}, content_len={}",
+        "[PREVIEW] Loaded: name='{}', type={}, final_type={}, content_len={}",
         name,
         preview_type,
+        final_type,
         content.len()
     );
 
     Ok(PreviewResult {
-        preview_type: preview_type.to_string(),
+        preview_type: final_type.to_string(),
         content,
         language: None,
         metadata: FileMetadata {
@@ -145,4 +180,19 @@ fn read_text_content(path: &str, ext: &str) -> String {
             }
         }
     }
+}
+
+/// Check if a string looks like readable text (not binary garbage)
+fn is_readable_text(s: &str) -> bool {
+    if s.is_empty() {
+        return false;
+    }
+    // Check first 1000 chars: at least 80% should be printable ASCII or common whitespace
+    let sample: String = s.chars().take(1000).collect();
+    let total = sample.chars().count();
+    let readable = sample.chars().filter(|c| {
+        c.is_ascii_graphic() || *c == ' ' || *c == '\n' || *c == '\r' || *c == '\t'
+    }).count();
+    // At least 80% readable and contains some spaces (indicating actual text)
+    (readable as f64 / total as f64) > 0.80 && sample.contains(' ')
 }
