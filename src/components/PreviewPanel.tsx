@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { FileText, Code, ImageIcon, Link, File, FolderOpen, Copy, ClipboardCopy } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileText, Code, ImageIcon, FolderOpen, Copy, ClipboardCopy } from "lucide-react";
 import type { SearchResult, PreviewResult } from "../types";
 
 interface PreviewPanelProps {

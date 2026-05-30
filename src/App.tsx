@@ -1,4 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { SplashScreen } from "./components/SplashScreen";
+import { FirstRunWizard } from "./components/FirstRunWizard";
 import { SearchBar } from "./components/SearchBar";
 import { ResultList } from "./components/ResultList";
 import { PreviewPanel } from "./components/PreviewPanel";
@@ -16,6 +18,8 @@ const FILTER_EXT_MAP: Record<string, string[]> = {
 };
 
 function App() {
+  const [appState, setAppState] = useState<"splash" | "wizard" | "ready">("splash");
+  const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
@@ -25,6 +29,25 @@ function App() {
   const [toast, setToast] = useState<{ id: number; message: string; type: "success" | "error" } | null>(null);
 
   const { searchQuery, previewFile, openFolder, copyPath } = useSearch();
+
+  // Check if first launch
+  useEffect(() => {
+    const hasSeenWizard = localStorage.getItem("hasSeenWizard");
+    setIsFirstLaunch(!hasSeenWizard);
+  }, []);
+
+  const handleSplashComplete = useCallback(() => {
+    if (isFirstLaunch) {
+      setAppState("wizard");
+    } else {
+      setAppState("ready");
+    }
+  }, [isFirstLaunch]);
+
+  const handleWizardComplete = useCallback(() => {
+    localStorage.setItem("hasSeenWizard", "true");
+    setAppState("ready");
+  }, []);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     const id = Date.now();
@@ -139,6 +162,17 @@ function App() {
 
   const filteredResults = getFilteredResults();
 
+  // Show splash screen
+  if (appState === "splash") {
+    return <SplashScreen isFirstLaunch={isFirstLaunch} onComplete={handleSplashComplete} />;
+  }
+
+  // Show first run wizard
+  if (appState === "wizard") {
+    return <FirstRunWizard onComplete={handleWizardComplete} />;
+  }
+
+  // Main app
   return (
     <div className="h-screen w-screen flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 rounded-4xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl">
       {/* Title bar */}
