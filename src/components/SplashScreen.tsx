@@ -5,7 +5,7 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
-export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: SplashScreenProps) {
+export function SplashScreen({ isFirstLaunch, onComplete }: SplashScreenProps) {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("正在初始化...");
   const [fadeOut, setFadeOut] = useState(false);
@@ -20,8 +20,11 @@ export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: Spla
 
     let currentStage = 0;
     let elapsed = 0;
+    let isComplete = false;
 
     const interval = setInterval(() => {
+      if (isComplete) return;
+
       if (currentStage < stages.length) {
         setStatusText(stages[currentStage].text);
         elapsed += 50;
@@ -31,8 +34,13 @@ export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: Spla
           elapsed = 0;
         }
         
-        setProgress(Math.min(((currentStage * 100) / stages.length) + (elapsed / stages[currentStage].duration) * (100 / stages.length), 100));
+        const baseProgress = (currentStage / stages.length) * 100;
+        const stageProgress = currentStage < stages.length 
+          ? (elapsed / stages[currentStage].duration) * (100 / stages.length)
+          : 0;
+        setProgress(Math.min(baseProgress + stageProgress, 100));
       } else {
+        isComplete = true;
         clearInterval(interval);
         setFadeOut(true);
         setTimeout(onComplete, 300);
@@ -40,7 +48,7 @@ export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: Spla
     }, 50);
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, []); // Empty dependency array - onComplete is stable
 
   return (
     <div 
@@ -49,7 +57,7 @@ export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: Spla
       }`}
     >
       <div className="text-center">
-        {/* Logo - minimal style */}
+        {/* Logo */}
         <div className="mb-8">
           <div className="w-20 h-20 mx-auto mb-6 bg-gray-900 dark:bg-white rounded-2xl flex items-center justify-center">
             <svg className="w-10 h-10 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +68,7 @@ export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: Spla
           <p className="text-sm text-gray-500">本地文件智能检索工具</p>
         </div>
 
-        {/* Progress bar - subtle */}
+        {/* Progress bar */}
         <div className="w-48 mx-auto mb-6">
           <div className="h-0.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div 

@@ -1,4 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { SplashScreen } from "./components/SplashScreen";
+import { FirstRunWizard } from "./components/FirstRunWizard";
 import { SearchBar } from "./components/SearchBar";
 import { ResultList } from "./components/ResultList";
 import { PreviewPanel } from "./components/PreviewPanel";
@@ -16,6 +18,8 @@ const FILTER_EXT_MAP: Record<string, string[]> = {
 };
 
 function App() {
+  const [appState, setAppState] = useState<"splash" | "wizard" | "ready">("splash");
+  const [isFirstLaunch, setIsFirstLaunch] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
@@ -25,6 +29,28 @@ function App() {
   const [toast, setToast] = useState<{ id: number; message: string; type: "success" | "error" } | null>(null);
 
   const { searchQuery, previewFile, openFolder, copyPath } = useSearch();
+
+  // Check if first launch (use ref to avoid re-renders)
+  const isFirstLaunchRef = useRef(false);
+  
+  useEffect(() => {
+    const hasSeenWizard = localStorage.getItem("hasSeenWizard");
+    isFirstLaunchRef.current = !hasSeenWizard;
+    setIsFirstLaunch(!hasSeenWizard);
+  }, []);
+
+  const handleSplashComplete = useCallback(() => {
+    if (isFirstLaunchRef.current) {
+      setAppState("wizard");
+    } else {
+      setAppState("ready");
+    }
+  }, []);
+
+  const handleWizardComplete = useCallback(() => {
+    localStorage.setItem("hasSeenWizard", "true");
+    setAppState("ready");
+  }, []);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     const id = Date.now();
@@ -126,6 +152,16 @@ function App() {
       console.error("Close failed:", error);
     }
   }, []);
+
+  // Show splash screen
+  if (appState === "splash") {
+    return <SplashScreen isFirstLaunch={isFirstLaunch} onComplete={handleSplashComplete} />;
+  }
+
+  // Show first run wizard
+  if (appState === "wizard") {
+    return <FirstRunWizard onComplete={handleWizardComplete} />;
+  }
 
   const getFilteredResults = () => {
     if (activeFilter === "all") return results;
