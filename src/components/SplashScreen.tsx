@@ -5,7 +5,7 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
-export function SplashScreen({ isFirstLaunch, onComplete }: SplashScreenProps) {
+export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: SplashScreenProps) {
   const [activeDot, setActiveDot] = useState(0);
   const [visible, setVisible] = useState(false);
 

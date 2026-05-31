@@ -29,14 +29,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": "nsis",
     "icon": [],
     "windows": {
       "nsis": {
         "installMode": "both",
-        "installerIcon": "icons/icon.ico",
-        "headerImage": "icons/header.bmp",
-        "sidebarImage": "icons/sidebar.bmp"
+        "installerIcon": "icons/icon.ico"
       }
     }
   },
