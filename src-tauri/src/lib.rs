@@ -14,11 +14,11 @@ pub fn run() {
     fmt()
         .with_env_filter(
             EnvFilter::from_default_env()
-                .add_directive("localsearch_pro=info".parse().unwrap()),
+                .add_directive("deepsearch=info".parse().unwrap()),
         )
         .init();
 
-    tracing::info!("Starting LocalSearch Pro...");
+    tracing::info!("Starting DeepSearch...");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())

@@ -41,7 +41,7 @@ export function SplashScreen({ isFirstLaunch: _isFirstLaunch, onComplete }: Spla
     >
       {/* App name only */}
       <h1 className="text-lg font-medium text-gray-900 dark:text-white tracking-tight mb-1">
-        LocalSearch Pro
+        DeepSearch
       </h1>
       <p className="text-xs text-gray-400 mb-12">
         本地文件智能检索

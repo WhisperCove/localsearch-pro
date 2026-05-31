@@ -1,12 +1,12 @@
 [package]
-name = "localsearch-pro"
+name = "deepsearch"
 version = "0.1.0"
-description = "Local file search tool"
+description = "DeepSearch - 本地文件智能检索工具"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "localsearch_pro_lib"
+name = "deepsearch_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

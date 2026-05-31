@@ -21,7 +21,7 @@ export function StatusBar() {
   if (!status) return null;
 
   const lastUpdateStr = status.lastUpdated > 0
-    ? new Date(status.lastUpdated * 1000).toLocaleTimeString("zh-CN")
+    ? new Date(status.lastUpdated * 1000).toLocaleDateString("zh-CN", { year: "numeric", month: "long" })
     : "未索引";
 
   return (
@@ -41,7 +41,7 @@ export function StatusBar() {
       {/* Center: Repo links */}
       <div className="flex items-center gap-6">
         <a
-          href="https://gitee.com/pure_full_of_smile/localsearch-pro"
+          href="https://gitee.com/pure_full_of_smile/DeepSearch"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:underline underline-offset-4 transition-all duration-200 font-medium"
@@ -62,7 +62,7 @@ export function StatusBar() {
 
       {/* Right: Version */}
       <div className="flex-1 text-right">
-        <span className="text-gray-300 dark:text-gray-600">LocalSearch Pro v0.1.0</span>
+        <span className="text-gray-300 dark:text-gray-600">DeepSearch v0.1.0</span>
       </div>
     </div>
   );

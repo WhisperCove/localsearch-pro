@@ -48,30 +48,30 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         </button>
       </div>
 
-      {/* Content */}
+      {/* Content - centered */}
       <div className="flex-1 flex items-center justify-center px-8">
-        <div className="text-center max-w-xs">
-          {/* Title */}
-          <h2 className="text-base font-medium text-gray-900 dark:text-white mb-2">
+        <div className="text-center">
+          {/* Title - larger and more prominent */}
+          <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight">
             {slides[current].title}
           </h2>
 
           {/* Description */}
-          <p className="text-sm text-gray-400">
+          <p className="text-base text-gray-500 max-w-xs mx-auto leading-relaxed">
             {slides[current].desc}
           </p>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex-none px-8 pb-10">
+      <div className="flex-none px-8 pb-12">
         {/* Dots */}
-        <div className="flex justify-center gap-1 mb-6">
+        <div className="flex justify-center gap-1.5 mb-8">
           {slides.map((_, i) => (
             <div
               key={i}
-              className={`h-0.5 rounded-full transition-all duration-300 ${
-                i === current ? "w-4 bg-gray-900 dark:bg-white" : "w-1 bg-gray-200 dark:bg-gray-800"
+              className={`h-1 rounded-full transition-all duration-300 ${
+                i === current ? "w-6 bg-gray-900 dark:bg-white" : "w-1.5 bg-gray-200 dark:bg-gray-800"
               }`}
             />
           ))}
@@ -80,7 +80,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         {/* Button */}
         <button
           onClick={handleNext}
-          className="w-full py-2.5 text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 transition-colors"
+          className="w-full py-3 text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 transition-colors rounded-lg"
         >
           {current < slides.length - 1 ? "继续" : "开始使用"}
         </button>
