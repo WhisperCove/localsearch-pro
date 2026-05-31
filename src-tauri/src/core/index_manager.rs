@@ -59,137 +59,111 @@ pub struct IndexProgress {
 pub fn get_all_scan_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
 
-    // Get home directory with fallback
+    tracing::info!("[INDEX] Starting directory discovery...");
+
+    // Method 1: dirs::home_dir()
     let home = match dirs::home_dir() {
         Some(h) => {
-            tracing::info!("[INDEX] Home directory: {:?}", h);
-            h
+            tracing::info!("[INDEX] home_dir(): {:?}", h);
+            Some(h)
         }
         None => {
-            tracing::error!("[INDEX] dirs::home_dir() returned None!");
-            // Fallback: try USERPROFILE env var
-            match std::env::var("USERPROFILE") {
-                Ok(profile) if !profile.is_empty() => {
-                    let h = PathBuf::from(&profile);
-                    tracing::warn!("[INDEX] Using USERPROFILE fallback: {:?}", h);
-                    h
-                }
-                _ => {
-                    tracing::error!("[INDEX] Cannot determine home directory. No directories to scan.");
-                    return dirs;
-                }
-            }
+            tracing::warn!("[INDEX] home_dir() returned None");
+            None
         }
     };
 
-    // Add common user directories (English + Chinese names)
-    let user_dirs = [
-        ("Desktop", "桌面"),
-        ("Documents", "文档"),
-        ("Downloads", "下载"),
-        ("Pictures", "图片"),
-        ("Music", "音乐"),
-        ("Videos", "视频"),
-    ];
-
-    for (en_name, cn_name) in &user_dirs {
-        let en_path = home.join(en_name);
-        let cn_path = home.join(cn_name);
-
-        if en_path.exists() && en_path.is_dir() {
-            tracing::info!("[INDEX] Found: {:?}", en_path);
-            dirs.push(en_path);
-        } else if cn_path.exists() && cn_path.is_dir() {
-            tracing::info!("[INDEX] Found (CN): {:?}", cn_path);
-            dirs.push(cn_path);
-        } else {
-            tracing::debug!(
-                "[INDEX] Neither {:?} nor {:?} exist",
-                en_path, cn_path
-            );
+    // Method 2: USERPROFILE env var
+    let userprofile = match std::env::var("USERPROFILE") {
+        Ok(up) => {
+            tracing::info!("[INDEX] USERPROFILE: {}", up);
+            Some(std::path::PathBuf::from(up))
         }
-    }
+        Err(e) => {
+            tracing::warn!("[INDEX] USERPROFILE not found: {}", e);
+            None
+        }
+    };
 
-    // Check OneDrive folder if exists
-    let onedrive = home.join("OneDrive");
-    if onedrive.exists() && onedrive.is_dir() {
-        tracing::info!("[INDEX] Found OneDrive: {:?}", onedrive);
-        let onedrive_dirs = [
+    // Use whichever is available
+    let base_dir = home.or(userprofile);
+
+    if let Some(base) = base_dir {
+        let user_dirs = [
             ("Desktop", "桌面"),
             ("Documents", "文档"),
             ("Downloads", "下载"),
+            ("Pictures", "图片"),
+            ("Music", "音乐"),
+            ("Videos", "视频"),
         ];
-        for (en_name, cn_name) in &onedrive_dirs {
-            let en_path = onedrive.join(en_name);
-            let cn_path = onedrive.join(cn_name);
 
-            if en_path.exists() && en_path.is_dir() && !dirs.contains(&en_path) {
-                tracing::info!("[INDEX] Found OneDrive dir: {:?}", en_path);
-                dirs.push(en_path);
-            } else if cn_path.exists() && cn_path.is_dir() && !dirs.contains(&cn_path) {
-                tracing::info!("[INDEX] Found OneDrive dir (CN): {:?}", cn_path);
-                dirs.push(cn_path);
+        for (en_name, cn_name) in &user_dirs {
+            let candidate = base.join(en_name);
+            if candidate.exists() && candidate.is_dir() {
+                tracing::info!("[INDEX] Found: {:?}", candidate);
+                dirs.push(candidate);
+            } else {
+                let candidate_cn = base.join(cn_name);
+                if candidate_cn.exists() && candidate_cn.is_dir() {
+                    tracing::info!("[INDEX] Found (CN): {:?}", candidate_cn);
+                    dirs.push(candidate_cn);
+                }
             }
         }
-    } else {
-        tracing::debug!("[INDEX] No OneDrive folder found at {:?}", onedrive);
+
+        // Check OneDrive
+        let onedrive = base.join("OneDrive");
+        if onedrive.exists() && onedrive.is_dir() {
+            tracing::info!("[INDEX] Found OneDrive: {:?}", onedrive);
+            for (en_name, cn_name) in &[("Desktop", "桌面"), ("Documents", "文档"), ("Downloads", "下载")] {
+                let candidate = onedrive.join(en_name);
+                if candidate.exists() && candidate.is_dir() && !dirs.contains(&candidate) {
+                    dirs.push(candidate);
+                } else {
+                    let candidate_cn = onedrive.join(cn_name);
+                    if candidate_cn.exists() && candidate_cn.is_dir() && !dirs.contains(&candidate_cn) {
+                        dirs.push(candidate_cn);
+                    }
+                }
+            }
+        }
     }
 
-    // Windows registry lookup for actual shell folder paths
+    // Method 3: Windows registry
     #[cfg(target_os = "windows")]
     {
         use winreg::enums::HKEY_CURRENT_USER;
         use winreg::RegKey;
 
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        match hkcu.open_subkey_with_flags(
+        match RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(
             "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
             winreg::enums::KEY_READ,
         ) {
             Ok(key) => {
                 if let Ok(desktop) = key.get_value::<String, _>("Desktop") {
-                    let desktop_path = PathBuf::from(&desktop);
-                    if desktop_path.exists() && !dirs.contains(&desktop_path) {
-                        tracing::info!("[INDEX] Registry Desktop: {:?}", desktop_path);
-                        dirs.push(desktop_path);
+                    let path = std::path::PathBuf::from(&desktop);
+                    if path.exists() && !dirs.contains(&path) {
+                        tracing::info!("[INDEX] Registry Desktop: {:?}", path);
+                        dirs.push(path);
                     }
-                } else {
-                    tracing::debug!("[INDEX] Registry: no Desktop value");
                 }
                 if let Ok(docs) = key.get_value::<String, _>("Personal") {
-                    let docs_path = PathBuf::from(&docs);
-                    if docs_path.exists() && !dirs.contains(&docs_path) {
-                        tracing::info!("[INDEX] Registry Documents: {:?}", docs_path);
-                        dirs.push(docs_path);
+                    let path = std::path::PathBuf::from(&docs);
+                    if path.exists() && !dirs.contains(&path) {
+                        tracing::info!("[INDEX] Registry Documents: {:?}", path);
+                        dirs.push(path);
                     }
-                } else {
-                    tracing::debug!("[INDEX] Registry: no Personal (Documents) value");
                 }
             }
-            Err(e) => {
-                tracing::warn!("[INDEX] Failed to open Shell Folders registry key: {}", e);
-            }
+            Err(e) => tracing::warn!("[INDEX] Registry access failed: {}", e),
         }
     }
 
     dirs.sort();
     dirs.dedup();
 
-    tracing::info!("[INDEX] Total scan directories: {}", dirs.len());
-    for d in &dirs {
-        tracing::info!("[INDEX]   - {:?}", d);
-    }
-
-    if dirs.is_empty() {
-        tracing::error!(
-            "[INDEX] WARNING: No directories found to scan! \
-             This means no files will be indexed. \
-             Home={:?}, USERPROFILE={:?}",
-            dirs::home_dir(),
-            std::env::var("USERPROFILE")
-        );
-    }
-
+    tracing::info!("[INDEX] Total directories found: {}", dirs.len());
     dirs
 }
 
