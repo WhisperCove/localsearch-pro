@@ -26,6 +26,8 @@ function App() {
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [totalResults, setTotalResults] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [toast, setToast] = useState<{ id: number; message: string; type: "success" | "error" } | null>(null);
 
@@ -65,17 +67,23 @@ function App() {
     setQuery(searchQueryStr);
     if (!searchQueryStr.trim()) {
       setResults([]);
+      setTotalResults(0);
+      setHasMore(false);
       setSelectedResult(null);
       setPreview(null);
       return;
     }
     setIsLoading(true);
     try {
-      const searchResults = await searchQuery(searchQueryStr);
-      setResults(searchResults);
+      const response = await searchQuery(searchQueryStr);
+      setResults(response.results);
+      setTotalResults(response.total);
+      setHasMore(response.hasMore);
     } catch (error) {
       console.error("Search error:", error);
       setResults([]);
+      setTotalResults(0);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
     }
@@ -213,9 +221,14 @@ function App() {
         <SearchBar query={query} onSearch={handleSearch} onRefresh={handleRefresh} isLoading={isLoading} />
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex-none px-6 pb-3">
+      {/* Filter tabs + result count */}
+      <div className="flex-none px-6 pb-3 flex items-center justify-between">
         <FilterBar activeFilter={activeFilter} onFilterChange={handleFilterChange} results={results} />
+        {query.trim() && (
+          <span className="text-xs text-gray-400">
+            {isLoading ? "搜索中..." : `${hasMore ? "500+" : totalResults} 个结果`}
+          </span>
+        )}
       </div>
 
       {/* Main content */}

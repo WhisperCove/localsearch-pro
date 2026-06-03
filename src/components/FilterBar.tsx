@@ -48,7 +48,7 @@ export function FilterBar({ activeFilter, onFilterChange, results }: FilterBarPr
               <span className={`text-xs px-1.5 py-0.5 rounded ${
                 isActive ? "bg-white/20 dark:bg-black/20" : "bg-gray-100 dark:bg-gray-800"
               }`}>
-                {count}
+                {count >= 500 ? "500+" : count}
               </span>
             )}
           </button>

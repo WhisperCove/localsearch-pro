@@ -366,12 +366,22 @@ export function PreviewPanel({ preview, result, onOpenFolder, onCopyPath, onCopy
       <div className="flex-1 overflow-auto min-h-0">
         {canPreview && preview ? (
           renderPreview()
+        ) : canPreview && !preview ? (
+          // Can preview but still loading
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-gray-400">
+              <div className="w-8 h-8 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-base font-medium text-gray-500">正在加载预览...</p>
+              <p className="text-sm mt-2 text-gray-400">.{result.ext} 文件</p>
+            </div>
+          </div>
         ) : (
+          // Cannot preview at all
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-400">
               <FileText className="w-20 h-20 mx-auto mb-4 opacity-15" />
-              <p className="text-base font-medium text-gray-500">不支持预览此格式</p>
-              <p className="text-sm mt-2 text-gray-400">.{result.ext} 文件</p>
+              <p className="text-base font-medium text-gray-500">无法预览此格式</p>
+              <p className="text-sm mt-2 text-gray-400">.{result.ext} 文件暂不支持预览</p>
               <p className="text-xs mt-1 text-gray-300">可使用系统默认程序打开</p>
             </div>
           </div>

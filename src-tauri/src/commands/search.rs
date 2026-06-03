@@ -15,59 +15,58 @@ pub struct SearchResult {
     pub modified_at: i64,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SearchFilters {
-    pub ext: Option<Vec<String>>,
+pub struct SearchResponse {
+    pub results: Vec<SearchResult>,
+    pub total: usize,
+    pub has_more: bool,
 }
 
-/// Execute a file search query - returns up to 500 matching results
 #[tauri::command]
 pub async fn search_query(
     query: String,
-    _page: Option<usize>,
-    _page_size: Option<usize>,
-    _filters: Option<SearchFilters>,
     db: tauri::State<'_, Arc<Database>>,
-) -> Result<Vec<SearchResult>, String> {
-    tracing::info!("[SEARCH] ========== Search Started ==========");
+) -> Result<SearchResponse, String> {
     tracing::info!("[SEARCH] Query: '{}'", query);
 
     if query.trim().is_empty() {
-        tracing::info!("[SEARCH] Empty query, returning empty results");
-        return Ok(vec![]);
+        return Ok(SearchResponse {
+            results: vec![],
+            total: 0,
+            has_more: false,
+        });
     }
 
-    let conn = db.conn.lock().map_err(|e| {
-        tracing::error!("[SEARCH] Failed to lock database: {}", e);
-        e.to_string()
-    })?;
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
-    // Check total files in database
-    let total: i64 = conn
+    let total_files: i64 = conn
         .query_row("SELECT COUNT(*) FROM files", [], |row| row.get(0))
         .unwrap_or(0);
-    tracing::info!("[SEARCH] Total files in database: {}", total);
 
-    if total == 0 {
-        tracing::warn!("[SEARCH] Database is empty! No files indexed.");
-        return Ok(vec![]);
+    if total_files == 0 {
+        return Ok(SearchResponse {
+            results: vec![],
+            total: 0,
+            has_more: false,
+        });
     }
 
     let like_pattern = format!("%{}%", query);
-    tracing::info!("[SEARCH] LIKE pattern: '{}'", like_pattern);
 
-    // Count matching files
-    let match_count: i64 = conn
+    // Count total matches
+    let total: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM files WHERE name LIKE ?1 OR path LIKE ?1",
             params![like_pattern],
             |row| row.get(0),
         )
         .unwrap_or(0);
-    tracing::info!("[SEARCH] Matching files: {}", match_count);
 
-    // Get results
+    // Get results with smart sorting:
+    // 1. Name matches first
+    // 2. Normal files before special symbol files ($xxx, .xxx)
+    // 3. Alphabetical
     let mut stmt = conn
         .prepare(
             "SELECT id, path, name, ext, size, modified_at
@@ -75,13 +74,11 @@ pub async fn search_query(
              WHERE name LIKE ?1 OR path LIKE ?1
              ORDER BY 
                CASE WHEN name LIKE ?1 THEN 0 ELSE 1 END,
+               CASE WHEN SUBSTR(name, 1, 1) = '$' OR SUBSTR(name, 1, 1) = '.' THEN 1 ELSE 0 END,
                name
              LIMIT 500",
         )
-        .map_err(|e| {
-            tracing::error!("[SEARCH] Failed to prepare statement: {}", e);
-            e.to_string()
-        })?;
+        .map_err(|e| e.to_string())?;
 
     let results: Vec<SearchResult> = stmt
         .query_map(params![like_pattern], |row| {
@@ -94,23 +91,17 @@ pub async fn search_query(
                 modified_at: row.get(5)?,
             })
         })
-        .map_err(|e| {
-            tracing::error!("[SEARCH] Query execution failed: {}", e);
-            e.to_string()
-        })?
-        .filter_map(|r| {
-            match r {
-                Ok(row) => Some(row),
-                Err(e) => {
-                    tracing::warn!("[SEARCH] Row error: {}", e);
-                    None
-                }
-            }
-        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
         .collect();
 
-    tracing::info!("[SEARCH] Returned {} results", results.len());
-    tracing::info!("[SEARCH] ========== Search Complete ==========");
+    let has_more = total >= 500;
 
-    Ok(results)
+    tracing::info!("[SEARCH] Returned {} results, total={}, has_more={}", results.len(), total, has_more);
+
+    Ok(SearchResponse {
+        results,
+        total: total as usize,
+        has_more,
+    })
 }

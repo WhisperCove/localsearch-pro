@@ -1,13 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { SearchResult, IndexStatus, PreviewResult } from "../types";
+import type { SearchResult, SearchResponse, IndexStatus, PreviewResult } from "../types";
 
 export function useSearch() {
-  const searchQuery = async (query: string): Promise<SearchResult[]> => {
+  const searchQuery = async (query: string): Promise<SearchResponse> => {
     try {
       return await invoke("search_query", { query });
     } catch (error) {
       console.error("Search failed:", error);
-      return [];
+      return { results: [], total: 0, hasMore: false };
     }
   };
 
@@ -29,7 +29,7 @@ export function useSearch() {
     }
   };
 
-  const previewFile = async (fileId: number): Promise<PreviewResult | null> => {
+  const previewFile = async (fileId: string): Promise<PreviewResult | null> => {
     try {
       return await invoke("preview_file", { fileId });
     } catch (error) {
@@ -54,13 +54,11 @@ export function useSearch() {
     }
   };
 
-  const copyPath = async (path: string): Promise<boolean> => {
+  const copyPath = async (path: string): Promise<void> => {
     try {
       await invoke("copy_path", { path });
-      return true;
     } catch (error) {
       console.error("Copy path failed:", error);
-      return false;
     }
   };
 

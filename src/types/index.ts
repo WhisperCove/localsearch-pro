@@ -1,10 +1,16 @@
 export interface SearchResult {
-  id: number;
+  id: string;
   name: string;
   path: string;
   ext: string;
   size: number;
   modifiedAt: number;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  total: number;
+  hasMore: boolean;
 }
 
 export interface PreviewResult {
@@ -15,7 +21,7 @@ export interface PreviewResult {
 }
 
 export interface FileMetadata {
-  id: number;
+  id: string;
   name: string;
   path: string;
   ext: string;
