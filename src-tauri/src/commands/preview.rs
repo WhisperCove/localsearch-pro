@@ -53,7 +53,8 @@ pub async fn preview_file(
         "txt" | "md" | "log" | "ini" | "cfg" | "conf" | "env" | "lnk" | "url" | "csv" => "text",
         "js" | "jsx" | "ts" | "tsx" | "py" | "rs" | "go" | "java" | "cpp" | "c" | "h"
         | "hpp" | "css" | "scss" | "less" | "sh" | "bash" | "ps1" | "bat" | "cmd" | "sql"
-        | "r" | "lua" | "vim" | "json" | "xml" | "yaml" | "yml" | "toml" | "html" | "htm" => {
+        | "r" | "lua" | "vim" | "json" | "xml" | "yaml" | "yml" | "toml" | "html" | "htm"
+        | "vue" | "svelte" | "astro" | "graphql" | "gql" | "proto" => {
             "code"
         }
         "pdf" => "pdf",
@@ -66,6 +67,7 @@ pub async fn preview_file(
             "video"
         }
         "xlsx" | "xls" => "table",
+        "pptx" | "ppt" | "odp" => "presentation",
         _ => "unsupported",
     };
 
@@ -103,6 +105,10 @@ pub async fn preview_file(
                     }
                 }
             }
+        }
+        "presentation" => {
+            // PPT/PPTX cannot be previewed - return empty to trigger "open with default app"
+            String::new()
         }
         "pdf" | "docx" | "image" | "video" => {
             // Read as binary and convert to base64

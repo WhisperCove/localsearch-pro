@@ -53,6 +53,9 @@ uuid = { version = "1", features = ["v4"] }
 # Encoding
 base64 = "0.22"
 
+# Archive (PPTX extraction)
+zip = "2"
+
 [profile.release]
 strip = true
 lto = true

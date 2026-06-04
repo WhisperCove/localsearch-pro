@@ -14,13 +14,15 @@ const PREVIEWABLE_TEXT_EXTS = [
   "txt", "md", "log", "json", "xml", "yaml", "yml", "toml",
   "js", "jsx", "ts", "tsx", "py", "rs", "go", "java", "cpp", "c", "h", "hpp",
   "css", "html", "htm", "scss", "less", "sh", "bash", "ps1", "bat", "cmd",
-  "sql", "r", "lua", "vim", "ini", "cfg", "conf", "env"
+  "sql", "r", "lua", "vim", "ini", "cfg", "conf", "env",
+  "vue", "svelte", "astro", "graphql", "gql", "proto",
 ];
 
 const CODE_EXTS = [
   "js", "jsx", "ts", "tsx", "py", "rs", "go", "java", "cpp", "c", "h", "hpp",
   "css", "html", "htm", "scss", "less", "sh", "bash", "ps1", "bat", "cmd",
-  "sql", "r", "lua", "vim", "json", "xml", "yaml", "yml", "toml"
+  "sql", "r", "lua", "vim", "json", "xml", "yaml", "yml", "toml",
+  "vue", "svelte", "astro", "graphql", "gql", "proto",
 ];
 
 const PDF_EXTS = ["pdf"];
@@ -51,6 +53,8 @@ function getLanguageName(ext: string): string {
     sql: "SQL", r: "R", lua: "Lua", vim: "Vim",
     md: "Markdown", txt: "Plain Text", log: "Log",
     ini: "INI", cfg: "Config", conf: "Config", env: "Environment",
+    vue: "Vue", svelte: "Svelte", astro: "Astro",
+    graphql: "GraphQL", gql: "GraphQL", proto: "Protocol Buffers",
     pdf: "PDF 文档", docx: "Word 文档", doc: "Word 文档",
     png: "PNG 图片", jpg: "JPEG 图片", jpeg: "JPEG 图片",
     gif: "GIF 图片", bmp: "BMP 图片", webp: "WebP 图片",
@@ -252,7 +256,7 @@ function VideoPreview({ base64Content, ext }: { base64Content: string; ext: stri
 
 // Text/Code Preview
 function renderCodeWithLineNumbers(content: string): JSX.Element {
-  const lines = content.split('\n').slice(0, 100);
+  const lines = content.split('\n');
   return (
     <div className="code-block">
       {lines.map((line, index) => (
@@ -261,9 +265,6 @@ function renderCodeWithLineNumbers(content: string): JSX.Element {
           <span className="flex-1">{line || '\n'}</span>
         </div>
       ))}
-      {content.split('\n').length > 100 && (
-        <div className="text-gray-500 mt-2">... 共 {content.split('\n').length} 行</div>
-      )}
     </div>
   );
 }
@@ -376,13 +377,20 @@ export function PreviewPanel({ preview, result, onOpenFolder, onCopyPath, onCopy
             </div>
           </div>
         ) : (
-          // Cannot preview at all
+          // Cannot preview - show open button
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-400">
               <FileText className="w-20 h-20 mx-auto mb-4 opacity-15" />
               <p className="text-base font-medium text-gray-500">无法预览此格式</p>
               <p className="text-sm mt-2 text-gray-400">.{result.ext} 文件暂不支持预览</p>
-              <p className="text-xs mt-1 text-gray-300">可使用系统默认程序打开</p>
+              {onOpenFolder && (
+                <button
+                  onClick={() => onOpenFolder(result.path)}
+                  className="mt-4 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  用系统默认程序打开
+                </button>
+              )}
             </div>
           </div>
         )}
